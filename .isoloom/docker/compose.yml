@@ -9,12 +9,20 @@ services:
   db:
     build:
       context: ../../build/db
+      labels:
+        isoloom.managed: 'true'
+        isoloom.environment: xben-071-sql-make-mistakes
     image: isoloom/xben-071-sql-make-mistakes-db
     platform: linux/amd64
     hostname: db
     networks:
       lab:
         ipv4_address: 10.61.114.10
+    environment:
+      CTF_FLAG_MAIN: ${CTF_FLAG_MAIN:-}
+    volumes:
+    - db-ctf:/ctf
+    - isoloom-probe-amd64:/.isoloom-probe:ro
     healthcheck:
       test:
       - CMD
@@ -26,8 +34,6 @@ services:
       timeout: 3s
       retries: 60
       start_period: 10s
-    volumes:
-    - isoloom-probe-amd64:/.isoloom-probe:ro
     depends_on:
       isoloom-probe-amd64:
         condition: service_completed_successfully
@@ -38,6 +44,8 @@ services:
           memory: 1024M
     labels:
       isoloom.service.mysql: tcp:3306
+      isoloom.managed: 'true'
+      isoloom.environment: xben-071-sql-make-mistakes
     restart: unless-stopped
   db-routes:
     image: alpine:3.20
@@ -59,9 +67,35 @@ services:
       db:
         condition: service_started
     restart: unless-stopped
+    labels:
+      isoloom.managed: 'true'
+      isoloom.environment: xben-071-sql-make-mistakes
+  db-init-1:
+    image: isoloom/xben-071-sql-make-mistakes-db
+    entrypoint:
+    - /bin/sh
+    - /isoloom/init/flag.sh
+    volumes:
+    - ../../ctf/flag.sh:/isoloom/init/flag.sh:ro
+    - db-ctf:/ctf
+    network_mode: service:db
+    environment:
+      CTF_FLAG_MAIN: ${CTF_FLAG_MAIN:-}
+    depends_on:
+      db:
+        condition: service_healthy
+      db-routes:
+        condition: service_healthy
+    restart: no
+    labels:
+      isoloom.managed: 'true'
+      isoloom.environment: xben-071-sql-make-mistakes
   app:
     build:
       context: ../../build/db/app/app
+      labels:
+        isoloom.managed: 'true'
+        isoloom.environment: xben-071-sql-make-mistakes
     image: isoloom/xben-071-sql-make-mistakes-app
     platform: linux/amd64
     hostname: app
@@ -88,6 +122,8 @@ services:
         condition: service_completed_successfully
       db:
         condition: service_healthy
+      db-init-1:
+        condition: service_completed_successfully
       db-routes:
         condition: service_healthy
     deploy:
@@ -97,6 +133,8 @@ services:
           memory: 512M
     labels:
       isoloom.service.web: http:80
+      isoloom.managed: 'true'
+      isoloom.environment: xben-071-sql-make-mistakes
     restart: unless-stopped
   app-routes:
     image: alpine:3.20
@@ -118,6 +156,9 @@ services:
       app:
         condition: service_started
     restart: unless-stopped
+    labels:
+      isoloom.managed: 'true'
+      isoloom.environment: xben-071-sql-make-mistakes
   isoloom-check:
     image: curlimages/curl:8.11.1
     profiles:
@@ -137,12 +178,17 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      db-init-1:
+        condition: service_completed_successfully
       db-routes:
         condition: service_healthy
       app:
         condition: service_healthy
       app-routes:
         condition: service_healthy
+    labels:
+      isoloom.managed: 'true'
+      isoloom.environment: xben-071-sql-make-mistakes
   isoloom-check-db:
     image: curlimages/curl:8.11.1
     profiles:
@@ -156,12 +202,17 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      db-init-1:
+        condition: service_completed_successfully
       db-routes:
         condition: service_healthy
       app:
         condition: service_healthy
       app-routes:
         condition: service_healthy
+    labels:
+      isoloom.managed: 'true'
+      isoloom.environment: xben-071-sql-make-mistakes
   isoloom-check-app:
     image: curlimages/curl:8.11.1
     profiles:
@@ -175,12 +226,17 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      db-init-1:
+        condition: service_completed_successfully
       db-routes:
         condition: service_healthy
       app:
         condition: service_healthy
       app-routes:
         condition: service_healthy
+    labels:
+      isoloom.managed: 'true'
+      isoloom.environment: xben-071-sql-make-mistakes
   isoloom-probe-amd64:
     image: busybox:1.37.0-musl
     platform: linux/amd64
@@ -192,11 +248,24 @@ services:
     - isoloom-probe-amd64:/probe
     network_mode: none
     restart: no
+    labels:
+      isoloom.managed: 'true'
+      isoloom.environment: xben-071-sql-make-mistakes
 networks:
   lab:
     ipam:
       config:
       - subnet: 10.61.114.0/24
         gateway: 10.61.114.1
+    labels:
+      isoloom.managed: 'true'
+      isoloom.environment: xben-071-sql-make-mistakes
 volumes:
-  isoloom-probe-amd64: {}
+  db-ctf:
+    labels:
+      isoloom.managed: 'true'
+      isoloom.environment: xben-071-sql-make-mistakes
+  isoloom-probe-amd64:
+    labels:
+      isoloom.managed: 'true'
+      isoloom.environment: xben-071-sql-make-mistakes

@@ -7,6 +7,9 @@
 version: 1
 name: xben-071-sql-make-mistakes
 
+# Given by the CyberCTF launcher: this player's flag. Without it the development flag.
+inputs: [CTF_FLAG_MAIN]
+
 networks:
   lab: { cidr: 10.61.114.0/24, internet: false }
 
@@ -15,8 +18,11 @@ machines:
     networks: { lab: 10 }
     services: [{ port: 3306, name: mysql }]
     resources: { cpus: 1, memory_mb: 1024 }
+    inputs: [CTF_FLAG_MAIN]
+    volumes: { ctf: /ctf }   # the flag, written by ctf/flag.sh at every start
     docker:
       build: build/db
+      init: [ctf/flag.sh]
 
   app:
     networks: { lab: 20 }
